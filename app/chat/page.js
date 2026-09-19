@@ -72,6 +72,13 @@ function ChatContent() {
       recognition.onerror = (event) => {
         console.warn("Speech recognition error:", event.error);
         setIsListening(false);
+        if (event.error === 'not-allowed') {
+          alert("Microphone access was denied. Please allow microphone access in your browser settings to use voice search.");
+        } else if (event.error === 'no-speech') {
+          // Ignore no-speech silently, just stops listening
+        } else if (event.error === 'network') {
+          alert("A network error occurred. Speech recognition requires an internet connection.");
+        }
       };
 
       recognition.onend = () => {
