@@ -28,8 +28,86 @@ function ChatContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [topicHandled, setTopicHandled] = useState(false);
+  const [speakingIndex, setSpeakingIndex] = useState(null);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
+  const recognitionRef = useRef(null);
+
+  // --- Speech Features ---
+  // Voice Input (Speech-to-Text like Google Search)
+  const toggleListening = () => {
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      setIsListening(false);
+      return;
+    }
+
+    const SpeechRecognition = typeof window !== "undefined" && (window.SpeechRecognition || window.webkitSpeechRecognition);
+    if (!SpeechRecognition) {
+      alert("Search by voice is supported in Google Chrome, Microsoft Edge, and Safari.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setInput(transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error("Speech recognition start failed:", err);
+      setIsListening(false);
+    }
+  };
+
+  // Text-to-Speech (Read assistant response aloud)
+  const speakText = (text, index) => {
+    if (!("speechSynthesis" in window)) return;
+    
+    if (speakingIndex === index) {
+      window.speechSynthesis.cancel();
+      setSpeakingIndex(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.1; // Make it sound slightly friendlier/higher
+    
+    utterance.onend = () => setSpeakingIndex(null);
+    utterance.onerror = () => setSpeakingIndex(null);
+    
+    setSpeakingIndex(index);
+    window.speechSynthesis.speak(utterance);
+  };
+  // -----------------------
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -60,7 +138,26 @@ function ChatContent() {
     }
   }, [searchParams, topicHandled]);
 
+  // Cleanup speech synthesis & recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+      }
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const activateGhostMode = () => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.abort(); } catch (e) {}
+    }
+    setIsListening(false);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     setMessages([]);
     setInput("");
     setGhostMode(true);
@@ -191,8 +288,19 @@ function ChatContent() {
             <div className="message-avatar">
               {msg.role === "user" ? "👤" : "🌙"}
             </div>
-            <div className="message-bubble">
-              {msg.content}
+            <div className="message-bubble-wrapper">
+              <div className="message-bubble">
+                {msg.content}
+              </div>
+              {msg.role === "assistant" && (
+                <button 
+                  className={`speak-btn ${speakingIndex === i ? 'speaking' : ''}`}
+                  onClick={() => speakText(msg.content, i)}
+                  title="Read aloud"
+                >
+                  {speakingIndex === i ? "⏹️" : "🔊"}
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -220,14 +328,29 @@ function ChatContent() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me anything... it's completely private 🔒"
+            placeholder={isListening ? "Listening... speak now 🎙️" : "Ask me anything... it's completely private 🔒"}
             rows={1}
             disabled={isLoading}
           />
           <button
+            type="button"
+            className={`chat-mic-btn ${isListening ? "listening" : ""}`}
+            onClick={toggleListening}
+            title={isListening ? "Listening... click to stop" : "Search by voice"}
+            aria-label="Search by voice"
+          >
+            <svg className="google-mic-svg" viewBox="0 0 24 24" width="22" height="22">
+              <path fill="#4285F4" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+              <path fill="#34A853" d="M11 18.92h2V22h-2z"/>
+              <path fill="#FBBC05" d="M7 11H5c0 3.53 2.61 6.43 6 6.92v-2.04c-2.39-.46-4-2.53-4-4.88z"/>
+              <path fill="#EA4335" d="M19 11c0 2.35-1.61 4.42-4 4.88v2.04c3.39-.49 6-3.39 6-6.92h-2z"/>
+            </svg>
+          </button>
+          <button
             className="chat-send-btn"
             onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}
+            title="Send message"
           >
             ↑
           </button>

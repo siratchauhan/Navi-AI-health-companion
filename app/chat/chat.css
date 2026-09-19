@@ -321,39 +321,131 @@
   box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.1);
 }
 
+.chat-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-mic-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--pink-200);
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.chat-mic-btn:hover {
+  background: var(--pink-50);
+  border-color: var(--pink-400);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-mic-btn:active {
+  transform: translateY(0);
+}
+
+.chat-mic-btn.listening {
+  background: #fff0f2;
+  border-color: #ea4335;
+  animation: mic-pulse 1.5s infinite;
+}
+
+.chat-mic-btn .google-mic-svg {
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.chat-mic-btn:hover .google-mic-svg {
+  transform: scale(1.12);
+}
+
+@keyframes mic-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(234, 67, 53, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(234, 67, 53, 0);
+  }
+}
+
 .chat-send-btn {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
   border: none;
   background: var(--pink-gradient);
   color: white;
   font-size: 1.2rem;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   transition: var(--transition);
-  box-shadow: var(--shadow-md);
   flex-shrink: 0;
 }
 
-.chat-send-btn:hover {
-  box-shadow: var(--shadow-lg);
-  transform: scale(1.05);
+.chat-send-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .chat-send-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+  filter: grayscale(1);
+}
+
+/* Speech TTS Button */
+.message-bubble-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 85%;
+}
+
+.speak-btn {
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+  padding: 0 4px;
+}
+
+.speak-btn:hover {
+  opacity: 1;
+}
+
+.speak-btn.speaking {
+  opacity: 1;
+  color: var(--pink-500);
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
 }
 
 .chat-disclaimer {
   text-align: center;
-  font-size: 0.72rem;
-  color: var(--gray-300);
-  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--gray-400);
+  margin-top: 1rem;
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
